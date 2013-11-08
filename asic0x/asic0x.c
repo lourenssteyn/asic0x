@@ -59,7 +59,7 @@ struct radio_packet {
 
 static int asic0x_rx_fixup(struct usbnet *dev, struct sk_buff *skb) {
 
-	struct radio_packet *usbradio_packet = (struct radio_packet*)skb;
+	struct radio_packet *usbradio_packet = (struct radio_packet*)skb->data;
 
 	struct ether_packet *ethernet_packet = (struct ether_packet*)0;
 
