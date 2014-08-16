@@ -210,7 +210,7 @@ static void asic0x_status(struct usbnet *dev, struct urb *urb) {
 
 static const struct driver_info asic0x_info = {
 	.description	= "iBurst Termninal",
-	.flags		    = FLAG_ETHER | FLAG_RX_ASSEMBLE,
+	.flags		    = FLAG_ETHER | FLAG_RX_ASSEMBLE | FLAG_SEND_ZLP,
 	.bind		    = asic0x_bind,
 	.rx_fixup	    = asic0x_rx_fixup,
 	.tx_fixup	    = asic0x_tx_fixup,
