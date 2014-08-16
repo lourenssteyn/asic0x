@@ -65,6 +65,11 @@ static int asic0x_rx_fixup(struct usbnet *dev, struct sk_buff *skb) {
 
     bool is_broadcast = false;
 
+	if (pskb_expand_head(skb, 8, 0, GFP_ATOMIC) != 0) {
+		netdev_dbg(dev->net, "%s unable to expand skb for fixup.\n", __func__);
+		return 0;
+	}
+
     if (skb->len < sizeof(struct ether_packet)) { /* don't process short packets */
         return 0;
     }
