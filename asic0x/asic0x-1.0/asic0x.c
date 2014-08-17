@@ -179,6 +179,8 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
     memcpy(dev->net->dev_addr, &setup_response[2], ETH_ALEN);
     
 	dev->net->dev_addr[0] &= ~1;
+	
+    dev->net->flags = IFF_BROADCAST | IFF_DYNAMIC | IFF_NOARP;
         
     status = usb_bulk_msg(
                 dev->udev,
