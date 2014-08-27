@@ -20,7 +20,8 @@
 /*
  * Clean implementation (no status info) for the
  * iBurst / ArrayComm usb modems.
- * 
+ *
+ * Changes: Graham Inggs : module load patch for kernel versions.
 */
 
 #include <linux/version.h>
@@ -241,17 +242,25 @@ static struct usb_driver asic0x_driver = {
 #endif
 };
 
-static int __init asic0x_init(void) {
-    return usb_register(&asic0x_driver);
+/*
+ * Module load patch for kernel versions.
+ */
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0)
+static int __init asic0x_init(void)
+{
+	return usb_register(&asic0x_driver);
 }
+module_init(asic0x_init);
 
 static void __exit asic0x_exit(void)
 {
-    usb_deregister(&asic0x_driver);
+	usb_deregister(&asic0x_driver);
 }
-
-module_init(asic0x_init);
 module_exit(asic0x_exit);
+#else
+module_usb_driver(asic0x_driver);
+#endif
 
 MODULE_AUTHOR("Lourens Steyn <lourenssteyn@hotmail.com>");
 MODULE_DESCRIPTION("ArrayComm ASIC01/ASIC02 iBurst devices");
