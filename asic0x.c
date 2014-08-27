@@ -241,7 +241,17 @@ static struct usb_driver asic0x_driver = {
 #endif
 };
 
-module_usb_driver(asic0x_driver);
+static int __init asic0x_init(void) {
+    return usb_register(&asic0x_driver);
+}
+
+static void __exit asic0x_exit(void)
+{
+    usb_deregister(&asic0x_driver);
+}
+
+module_init(asic0x_init);
+module_exit(asic0x_exit);
 
 MODULE_AUTHOR("Lourens Steyn <lourenssteyn@hotmail.com>");
 MODULE_DESCRIPTION("ArrayComm ASIC01/ASIC02 iBurst devices");
