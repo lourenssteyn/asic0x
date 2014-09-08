@@ -1,6 +1,6 @@
 /*
  * iBurst / ArrayComm network driver for USB
- * Copyright (C) 2013 by Lourens Steyn <lourenssteyn@hotmail.com>
+ * Copyright (C) 2013 by Lourens Steyn <za.steyn.lourens@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -262,6 +262,6 @@ module_exit(asic0x_exit);
 module_usb_driver(asic0x_driver);
 #endif
 
-MODULE_AUTHOR("Lourens Steyn <lourenssteyn@hotmail.com>");
+MODULE_AUTHOR("Lourens Steyn <za.steyn.lourens@gmail.com>");
 MODULE_DESCRIPTION("ArrayComm ASIC01/ASIC02 iBurst devices");
 MODULE_LICENSE("GPL");
