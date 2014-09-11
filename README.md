@@ -1,3 +1,6 @@
+**NEW** : New TP-LINK MR3420 development hardware sponsored by Uniterm Direct <http://www.dbg.co.za>
+
+
 Source for making / installing the dkms version of the driver where the usbnet.c is already fixed.
 
 Basic install requires that you copy asic0x.c, dkms.conf, Makefile into /usr/src/asic0x-1.0

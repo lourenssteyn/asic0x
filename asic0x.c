@@ -17,12 +17,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+
+/*
+ * SPONSORSHIP
+ *
+ * Uniterm Direct <http://www.dbg.co.za>
+ * -------------------------------------
+ *
+ * TP-LINK MR3420 development hardware sponsored by Uniterm Direct <http://www.dbg.co.za>
+ *
+ */
+
+
 /*
  * Clean implementation (no status info) for the
  * iBurst / ArrayComm usb modems.
  *
  * Changes: Graham Inggs : module load patch for kernel versions.
-*/
+ */
 
 #include <linux/version.h>
 #include <linux/module.h>
