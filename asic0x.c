@@ -137,10 +137,70 @@ static struct sk_buff *asic0x_tx_fixup(struct usbnet *dev, struct sk_buff *skb, 
 }
 
 static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
+
+	int status, actual_len;
+
+	u8 *config_data, modem_type;
+	
+    status = usb_reset_configuration(dev->udev);
     
+    if (status < 0) {
+        dev_err(&dev->udev->dev, "%s unable to reset usb configuration.\n", __func__);
+        goto err_end;
+    }
+
+	status = usbnet_get_endpoints(dev, intf);
+
+    if (status < 0) {
+        dev_err(&dev->udev->dev, "%s unable to get device endpoints.\n", __func__);
+		goto err_end;
+	}
+
+	modem_type = 0;
+
+	config_data = kmalloc(SETUP_RESPONSE_SIZE, GFP_KERNEL);
+
+	status = usb_control_msg(
+				dev->udev,
+				usb_rcvctrlpipe(dev->udev, 0),
+			    VENDOR_SETUP_REQUEST,
+			    USB_DIR_IN | USB_TYPE_VENDOR,
+			    cpu_to_le16(0),
+			    cpu_to_le16(0),
+			    config_data,
+			    SETUP_RESPONSE_SIZE,
+			    USB_CTRL_GET_TIMEOUT);
+
+	if (SETUP_RESPONSE_SIZE == status) {
+		modem_type = config_data[1];
+	}
+
+	kfree(config_data);
+
+	if (status != SETUP_RESPONSE_SIZE) {
+        dev_err(&dev->udev->dev, "%s unable to read vendor setup data.\n", __func__);
+        goto err_end;
+	}	
+
+	switch (modem_type) {
+		case UT02_ASIC01_MODEM:
+			dev_info(&dev->udev->dev, "%s UT02_ASIC01_MODEM type detected.\n", __func__);
+			break;
+			
+		case UT04_ASIC02_MODEM:
+			dev_info(&dev->udev->dev, "%s UT04_ASIC02_MODEM type detected.\n", __func__);
+			break;
+			
+		default:
+			dev_err(&dev->udev->dev, "%s invalid modem type %02x detected.\n", __func__, modem_type);
+            status = -EIO;
+            goto err_end;
+	}
+
+/*    
     int status, actual_len;
         
-    u8 setup_response[SETUP_RESPONSE_SIZE] = {0};
+    u8 *setup_response;
 
     u8 config_data[8] = {0x0, 0x8, 0x0, 0xf7, 0xac, 0x3, 0x0, 0x2};
                 
@@ -154,28 +214,30 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 	status = usbnet_get_endpoints(dev, intf);
 
     if (status < 0) {
-		usb_set_intfdata(intf, NULL);
-		usb_driver_release_interface(driver_of(intf), intf);
         dev_err(&dev->udev->dev, "%s unable to get device endpoints.\n", __func__);
 		goto end;
 	}
 
-    status = usb_control_msg(
-                dev->udev,
-                usb_rcvctrlpipe(dev->udev, 0),
-                VENDOR_SETUP_REQUEST,
-                USB_DIR_IN | USB_TYPE_VENDOR,
-                cpu_to_le16(0),
-                cpu_to_le16(0),
-                setup_response,
-                cpu_to_le16(SETUP_RESPONSE_SIZE),
-                0);
+	setup_response = kmalloc(SETUP_RESPONSE_SIZE, GFP_ATOMIC);
+
+	status = usbnet_read_cmd(
+				dev->udev,
+				VENDOR_SETUP_REQUEST,
+				USB_DIR_IN | USB_TYPE_VENDOR,
+				cpu_to_le16(0),
+				cpu_to_le16(0),
+				setup_response,
+				cpu_to_le16(SETUP_RESPONSE_SIZE));
 	
 	if (status != SETUP_RESPONSE_SIZE) {
         dev_err(&dev->udev->dev, "%s unable to read vendor setup data.\n", __func__);
         goto end;
 	}
-    	
+
+	kfree(setup_response);
+*/
+
+/*    	
 	switch (setup_response[1]) {
 		case UT02_ASIC01_MODEM:
 			dev_info(&dev->udev->dev, "%s UT02_ASIC01_MODEM type detected.\n", __func__);
@@ -212,10 +274,14 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
         dev_err(&dev->udev->dev, "%s incomplete configuration data sent, count = %d\n", __func__, actual_len);
         goto end;
     }
+*/
 
     return 0;
-    
-end:
+
+err_end:
+	usb_set_intfdata(intf, NULL);
+	usb_driver_release_interface(driver_of(intf), intf);
+
     return status;
 }
 
