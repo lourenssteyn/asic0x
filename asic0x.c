@@ -140,7 +140,9 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	int status, actual_len;
 
-	u8 *config_data, modem_type;
+	u8 *setup_data, modem_type;
+	
+	u8 config_data[8] = {0x0, 0x8, 0x0, 0xf7, 0xac, 0x3, 0x0, 0x2};
 	
     status = usb_reset_configuration(dev->udev);
     
@@ -158,7 +160,7 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	modem_type = 0;
 
-	config_data = kmalloc(SETUP_RESPONSE_SIZE, GFP_KERNEL);
+	setup_data = kmalloc(SETUP_RESPONSE_SIZE, GFP_KERNEL);
 
 	status = usb_control_msg(
 				dev->udev,
@@ -167,15 +169,16 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 			    USB_DIR_IN | USB_TYPE_VENDOR,
 			    cpu_to_le16(0),
 			    cpu_to_le16(0),
-			    config_data,
+			    setup_data,
 			    SETUP_RESPONSE_SIZE,
 			    USB_CTRL_GET_TIMEOUT);
 
 	if (SETUP_RESPONSE_SIZE == status) {
-		modem_type = config_data[1];
+		modem_type = setup_data[1];
+		memcpy(dev->net->dev_addr, &setup_data[2], ETH_ALEN);
 	}
 
-	kfree(config_data);
+	kfree(setup_data);
 
 	if (status != SETUP_RESPONSE_SIZE) {
         dev_err(&dev->udev->dev, "%s unable to read vendor setup data.\n", __func__);
@@ -197,84 +200,27 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
             goto err_end;
 	}
 
-/*    
-    int status, actual_len;
-        
-    u8 *setup_response;
-
-    u8 config_data[8] = {0x0, 0x8, 0x0, 0xf7, 0xac, 0x3, 0x0, 0x2};
-                
-    status = usb_reset_configuration(dev->udev);
-    
-    if (status < 0) {
-        dev_err(&dev->udev->dev, "%s unable to reset usb configuration.\n", __func__);
-        goto end;
-    }
-
-	status = usbnet_get_endpoints(dev, intf);
-
-    if (status < 0) {
-        dev_err(&dev->udev->dev, "%s unable to get device endpoints.\n", __func__);
-		goto end;
-	}
-
-	setup_response = kmalloc(SETUP_RESPONSE_SIZE, GFP_ATOMIC);
-
-	status = usbnet_read_cmd(
-				dev->udev,
-				VENDOR_SETUP_REQUEST,
-				USB_DIR_IN | USB_TYPE_VENDOR,
-				cpu_to_le16(0),
-				cpu_to_le16(0),
-				setup_response,
-				cpu_to_le16(SETUP_RESPONSE_SIZE));
-	
-	if (status != SETUP_RESPONSE_SIZE) {
-        dev_err(&dev->udev->dev, "%s unable to read vendor setup data.\n", __func__);
-        goto end;
-	}
-
-	kfree(setup_response);
-*/
-
-/*    	
-	switch (setup_response[1]) {
-		case UT02_ASIC01_MODEM:
-			dev_info(&dev->udev->dev, "%s UT02_ASIC01_MODEM type detected.\n", __func__);
-			break;
-		case UT04_ASIC02_MODEM:
-			dev_info(&dev->udev->dev, "%s UT04_ASIC02_MODEM type detected.\n", __func__);
-			break;
-		default:
-			dev_err(&dev->udev->dev, "%s invalid modem type %02x detected.\n", __func__, setup_response[1]);
-            status = -EIO;
-            goto end;
-	}
-	
-    memcpy(dev->net->dev_addr, &setup_response[2], ETH_ALEN);
-    
 	dev->net->dev_addr[0] &= ~1;
 	
     dev->net->flags = IFF_BROADCAST | IFF_DYNAMIC | IFF_NOARP;
-        
+
     status = usb_bulk_msg(
                 dev->udev,
                 dev->out,
                 config_data,
-                8,
+                cpu_to_le16(8),
                 &actual_len,
                 0);
     
     if (status < 0) {
         dev_err(&dev->udev->dev, "%s unable to send configuration data.\n", __func__);
-        goto end;
+        goto err_end;
     }
     
     if (actual_len < 8) {
         dev_err(&dev->udev->dev, "%s incomplete configuration data sent, count = %d\n", __func__, actual_len);
-        goto end;
+        goto err_end;
     }
-*/
 
     return 0;
 
