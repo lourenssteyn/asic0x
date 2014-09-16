@@ -50,10 +50,10 @@
 #include <linux/slab.h>
 #include <linux/usb/usbnet.h>
 
-#define UT02_ASIC01_MODEM	0x63
-#define UT04_ASIC02_MODEM	0x4d
+#define UT02_ASIC01_MODEM		0x63
+#define UT04_ASIC02_MODEM		0x4d
 #define VENDOR_SETUP_REQUEST	0x63
-#define SETUP_RESPONSE_SIZE	8
+
 
 struct ether_packet {
 	unsigned char dest[ETH_ALEN];
@@ -138,9 +138,9 @@ static struct sk_buff *asic0x_tx_fixup(struct usbnet *dev, struct sk_buff *skb, 
 
 static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
-	int status, actual_len;
+	int status, actual_len, mod, inc;
 
-	u8 *setup_data, modem_type;
+	u8 *setup_data, *aligned_address, modem_type;
 	
 	u8 config_data[8] = {0x0, 0x8, 0x0, 0xf7, 0xac, 0x3, 0x0, 0x2};
 	
@@ -160,27 +160,37 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	modem_type = 0;
 
-	setup_data = kmalloc(SETUP_RESPONSE_SIZE, GFP_KERNEL);
+	setup_data = kmalloc(16, GFP_ATOMIC);
+
+	mod = (long)setup_data % (long)4;
+
+	if ( mod ){
+		inc = 4 - mod;
+		aligned_address = setup_data + inc;
+	}
+	else
+		aligned_address = setup_data;
 
 	status = usb_control_msg(
 				dev->udev,
 				usb_rcvctrlpipe(dev->udev, 0),
 			    VENDOR_SETUP_REQUEST,
-			    USB_DIR_IN | USB_TYPE_VENDOR,
-			    cpu_to_le16(0),
-			    cpu_to_le16(0),
-			    setup_data,
-			    SETUP_RESPONSE_SIZE,
+			    USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE,
+			    0,
+			    0,
+			    aligned_address,
+			    8,
 			    USB_CTRL_GET_TIMEOUT);
 
-	if (SETUP_RESPONSE_SIZE == status) {
-		modem_type = setup_data[1];
-		memcpy(dev->net->dev_addr, &setup_data[2], ETH_ALEN);
+
+	if (status > 0) {
+		modem_type = aligned_address[1];
+		memcpy(dev->net->dev_addr, &aligned_address[2], ETH_ALEN);
 	}
 
 	kfree(setup_data);
 
-	if (status != SETUP_RESPONSE_SIZE) {
+	if (status != 8) {
         dev_err(&dev->udev->dev, "%s unable to read vendor setup data.\n", __func__);
         goto err_end;
 	}	
@@ -204,13 +214,28 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 	
     dev->net->flags = IFF_BROADCAST | IFF_DYNAMIC | IFF_NOARP;
 
+	setup_data = kmalloc(16, GFP_ATOMIC);
+
+	mod = (long)setup_data % (long)4;
+
+	if ( mod ){
+		inc = 4 - mod;
+		aligned_address = setup_data + inc;
+	}
+	else
+		aligned_address = setup_data;
+
+	memcpy(aligned_address, config_data, 8);
+
     status = usb_bulk_msg(
                 dev->udev,
                 dev->out,
-                config_data,
-                cpu_to_le16(8),
+                aligned_address,
+                8,
                 &actual_len,
                 0);
+
+	kfree(setup_data);
     
     if (status < 0) {
         dev_err(&dev->udev->dev, "%s unable to send configuration data.\n", __func__);
