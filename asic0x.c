@@ -138,9 +138,9 @@ static struct sk_buff *asic0x_tx_fixup(struct usbnet *dev, struct sk_buff *skb, 
 
 static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
-	int status, actual_len, mod, inc;
+	int status, actual_len;
 
-	u8 *setup_data, *aligned_address, modem_type;
+	u8 *setup_data, modem_type;
 	
 	u8 config_data[8] = {0x0, 0x8, 0x0, 0xf7, 0xac, 0x3, 0x0, 0x2};
 	
@@ -162,22 +162,6 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	setup_data = kmalloc(16, GFP_ATOMIC);
 
-	/*
-	 * The below alignment can be optimized with
-	 * 
-	 * aligned_address = (setup_data + 3) &~ (u8*)0x4;
-	 *
-	 */
-	
-	mod = (long)setup_data % (long)4;
-
-	if ( mod ){
-		inc = 4 - mod;
-		aligned_address = setup_data + inc;
-	}
-	else
-		aligned_address = setup_data;
-
 	status = usb_control_msg(
 				dev->udev,
 				usb_rcvctrlpipe(dev->udev, 0),
@@ -185,14 +169,14 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 			    USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE,
 			    0,
 			    0,
-			    aligned_address,
+			    setup_data,
 			    8,
 			    USB_CTRL_GET_TIMEOUT);
 
 
 	if (status > 0) {
-		modem_type = aligned_address[1];
-		memcpy(dev->net->dev_addr, &aligned_address[2], ETH_ALEN);
+		modem_type = setup_data[1];
+		memcpy(dev->net->dev_addr, &setup_data[2], ETH_ALEN);
 	}
 
 	kfree(setup_data);
@@ -223,28 +207,12 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	setup_data = kmalloc(16, GFP_ATOMIC);
 
-	/*
-	 * The below alignment can be optimized with
-	 * 
-	 * aligned_address = (setup_data + 3) &~ (u8*)0x4;
-	 *
-	 */
-
-	mod = (long)setup_data % (long)4;
-
-	if ( mod ){
-		inc = 4 - mod;
-		aligned_address = setup_data + inc;
-	}
-	else
-		aligned_address = setup_data;
-
-	memcpy(aligned_address, config_data, 8);
+	memcpy(setup_data, config_data, 8);
 
     status = usb_bulk_msg(
                 dev->udev,
                 dev->out,
-                aligned_address,
+                setup_data,
                 8,
                 &actual_len,
                 0);
