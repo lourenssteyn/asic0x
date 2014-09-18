@@ -162,6 +162,13 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	setup_data = kmalloc(16, GFP_ATOMIC);
 
+	/*
+	 * The below alignment can be optimized with
+	 * 
+	 * aligned_address = (setup_data + 3) &~ (u8*)0x4;
+	 *
+	 */
+	
 	mod = (long)setup_data % (long)4;
 
 	if ( mod ){
@@ -215,6 +222,13 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
     dev->net->flags = IFF_BROADCAST | IFF_DYNAMIC | IFF_NOARP;
 
 	setup_data = kmalloc(16, GFP_ATOMIC);
+
+	/*
+	 * The below alignment can be optimized with
+	 * 
+	 * aligned_address = (setup_data + 3) &~ (u8*)0x4;
+	 *
+	 */
 
 	mod = (long)setup_data % (long)4;
 
