@@ -140,7 +140,7 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	int status, actual_len;
 
-	u8 *setup_data, *aligned_address, modem_type;
+	u8 *setup_data, modem_type;
 	
 	u8 config_data[8] = {0x0, 0x8, 0x0, 0xf7, 0xac, 0x3, 0x0, 0x2};
 	
@@ -161,8 +161,6 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 	modem_type = 0;
 
 	setup_data = kmalloc(16, GFP_ATOMIC);
-	
-	aligned_address = (u8*)((unsigned long)(setup_data + 3) &~ (unsigned long)0x4);
 
 	status = usb_control_msg(
 				dev->udev,
@@ -171,7 +169,7 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 			    USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE,
 			    0,
 			    0,
-			    aligned_address,
+			    setup_data,
 			    8,
 			    USB_CTRL_GET_TIMEOUT);
 
@@ -209,14 +207,12 @@ static int asic0x_bind(struct usbnet *dev, struct usb_interface *intf) {
 
 	setup_data = kmalloc(16, GFP_ATOMIC);
 
-	aligned_address = (u8*)((unsigned long)(setup_data + 3) &~ (unsigned long)0x4);
-
-	memcpy(aligned_address, config_data, 8);
+	memcpy(setup_data, config_data, 8);
 
     status = usb_bulk_msg(
                 dev->udev,
                 dev->out,
-                aligned_address,
+                setup_data,
                 8,
                 &actual_len,
                 0);
